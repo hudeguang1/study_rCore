@@ -20,8 +20,7 @@
     sfence.vma
 ```
 
-​	boot_page_table中第二项是低地址到低地址的映射，第510项是低地址到高地址的映射。
-
+​	boot_page_table中第二项是低地址到低地址的映射，第510项是高地址到低地址的映射。
 ### 实现页表
 
 ![img](https://pic3.zhimg.com/80/v2-0bb54bd378ba63fea38b862c88fbb596_720w.png)	实现Sv39页表，需要三级页表，通过address.rs中level函数，获得三级VPN；
@@ -67,12 +66,12 @@ pub struct PageTableTracker(pub FrameTracker);
 
 ### 函数调用过程
 
-​	通过main函数调用memory_set.rs中的new_kernel函数，此函数实现内核重映射。首先设置.text、.rodata、.data、.bss以及剩余内存空间（内核结束地址到内存结束地址）的映射关系结构体Segment（其成员包括：映射类型map_type，所映射的虚拟地址range，权限标志flags），存储到Vec中。
+​	    通过main函数调用memory_set.rs中的new_kernel函数，此函数实现内核重映射。首先设置.text、.rodata、.data、.bss以及剩余内存空间（内核结束地址到内存结束地址）的映射关系结构体Segment（其成员包括：映射类型map_type，所映射的虚拟地址range，权限标志flags），存储到Vec中。
 
-​	字段设置完成后，调用mapping.rs中的new函数，进而调用PageTableTracker的new函数返回创建的空的page_table。并获取page_table的物理页号，返回一个Mapping结构体（此结构体保存线程的内存映射关系，成员包括保存使用到的页表的page_tables，根页表物理页号的root_ppn，所有分配的物理页面映射信息的mapped_pairs），从而创建一个有根节点的映射。
+​	    字段设置完成后，调用mapping.rs中的new函数，进而调用PageTableTracker的new函数返回创建的空的page_table。并获取page_table的物理页号，返回一个Mapping结构体（此结构体保存线程的内存映射关系，成员包括保存使用到的页表的page_tables，根页表物理页号的root_ppn，所有分配的物理页面映射信息的mapped_pairs），从而创建一个有根节点的映射。
 
-​	循环将每个字段的semgent在页表中进行映射，因为每个segment的映射类型都是线性映射，初始化数据均为空，所以仅执行map函数中线性映射分支，调用map_one函数实现每个字段虚拟页号和物理页号的映射关系。在map_one函数中，根据虚拟页号查找页表项，如果页表项不存在，就通过page_table_entry.rs中的new函数将物理页号和标志写入一个页表项。因为segment初始化数据为None，所以不需要拷贝数据。
+​	    循环将每个字段的semgent在页表中进行映射，因为每个segment的映射类型都是线性映射，初始化数据均为空，所以仅执行map函数中线性映射分支，调用map_one函数实现每个字段虚拟页号和物理页号的映射关系。在map_one函数中，根据虚拟页号查找页表项，如果页表项不存在，就通过page_table_entry.rs中的new函数将物理页号和标志写入一个页表项。因为segment初始化数据为None，所以不需要拷贝数据。
 
-​	最后new_kernel函数返回一个MemorySet结构体（该结构体包含mapping成员，维护页表和映射关系；segments成员是指字段）
+​	    最后new_kernel函数返回一个MemorySet结构体（该结构体包含mapping成员，维护页表和映射关系；segments成员是指字段）
 
-​	通过activate函数将映射加载到stap寄存器，并刷新TLB
+​	    通过activate函数将映射加载到stap寄存器，并刷新TLB
